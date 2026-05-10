@@ -19,6 +19,7 @@ export const ModelSelect = () => {
     ewe: '生态模型',
     'water-ewe': '水环境ewe耦合模型',
     spoil: '扩散模型',
+    'fvcom': 'FVCOM耦合模型'
   }
 
   return (

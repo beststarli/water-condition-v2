@@ -14,7 +14,7 @@
     "lint": "eslint src/**/* test/**/* --max-warnings 0",
     "prettier": "prettier src/**/* test/**/* --write",
     "format": "pnpm prettier && pnpm lint",
-    "prisma": "pnpm dlx prisma db pull && pnpm dlx prisma generate",
+    "prisma": "prisma db pull && prisma generate",
     "studio": "pnpm dlx prisma studio"
   },
   "devDependencies": {

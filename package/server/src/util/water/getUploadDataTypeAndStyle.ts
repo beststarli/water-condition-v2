@@ -62,7 +62,7 @@ export const getUploadDataExtentAndVisualization = async (
 
   const datToGeoJSON = async () => {
     await execa(
-      `conda activate gis && python ${[
+      `conda run -n gis python ${[
         path.join(process.cwd(), '/src/util/water/dat2json.py'),
         path.join(filePath),
       ].join(' ')}`,
@@ -77,7 +77,7 @@ export const getUploadDataExtentAndVisualization = async (
   const fnMap: Record<string, () => Promise<[number[], string[]]>> = {
     'mesh31.gr3': async () => {
       const { stdout } = await execa(
-        `conda activate gis && python ${[
+        `conda run -n gis python ${[
           path.join(process.cwd(), '/src/util/water/mesh.py'),
           path.join(path.dirname(filePath)),
           'mesh31',
@@ -93,7 +93,7 @@ export const getUploadDataExtentAndVisualization = async (
     },
     'f0.gr3': async () => {
       const { stdout } = await execa(
-        `conda activate gis && python ${[
+        `conda run -n gis python ${[
           path.join(process.cwd(), '/src/util/water/fo.py'),
           relativeFilePath.includes('inputfile')
             ? path.join(path.dirname(path.dirname(filePath)))

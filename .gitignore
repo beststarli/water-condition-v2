@@ -35,3 +35,6 @@ env.*
 
 # Build
 dist
+
+package/data
+/generated/prisma

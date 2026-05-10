@@ -4,6 +4,7 @@ await esbuild.build({
   entryPoints: ['src/main.ts'],
   bundle: true,
   platform: 'node',
+  external: ['@prisma/client', '.prisma/client'],
   outdir: 'dist',
   sourcemap: true,
   format: 'esm',

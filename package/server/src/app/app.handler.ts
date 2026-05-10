@@ -1,9 +1,11 @@
 import { FastifyTypebox } from '@/type'
 import { generateResponse } from '@/util/typebox'
-import { Prisma } from '@prisma/client'
+import prismaPkg from '@prisma/client'
 import fp from 'fastify-plugin'
 
 export const globalErrorHandler = fp(async (app: FastifyTypebox) => {
+  const { Prisma } = prismaPkg
+
   app.setErrorHandler((error, _, res) => {
     if (
       error instanceof Prisma.PrismaClientRustPanicError ||

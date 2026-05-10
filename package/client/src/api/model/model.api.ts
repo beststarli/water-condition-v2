@@ -405,6 +405,7 @@ export const postSpoilParamAPI = async (params: SpoilBodyType) => {
 }
 
 export const postModelActionAPI = async (params: ModelActionBodyType) => {
+  console.log('运行了postModelActionAPI')
   const url = `/api/v1/model/water/action`
   const response: DataFetchAPIInterface<ModelActionType> = await extendFetch(
     url,
@@ -439,6 +440,7 @@ export const postModelActionAPI = async (params: ModelActionBodyType) => {
       return result
     })
 
+  console.log('运行结果',response)
   return response
 }
 

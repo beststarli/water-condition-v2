@@ -141,7 +141,7 @@ const preUvetProcess = async (
   },
 ) => {
   const uvetPost = execa(
-    `conda activate gis && python ${[
+    `conda run -n gis python ${[
       path.join(process.cwd(), '/src/util/water/uvetPost.py'),
       path.join(DATA_FOLDER_PATH, modelFolderPath),
       meshExtent.join(','),
@@ -206,6 +206,7 @@ const runWater2DModel = async (
   projectID: string,
   modelID: string,
 ) => {
+  console.log('运行了runWater2DModel')
   const identifier = Date.now().toString()
   const projectInfo = await orm.project.getProjectByProjectID(projectID)
   if (!projectInfo) throw Error()
@@ -463,7 +464,7 @@ const preUvetProcess3D = async (
   },
 ) => {
   const uvetPost = execa(
-    `conda activate gis && python ${[
+    `conda run -n gis python ${[
       path.join(process.cwd(), '/src/util/water/uvetPost3D.py'),
       path.join(DATA_FOLDER_PATH, modelFolderPath),
       meshExtent.join(','),
@@ -567,7 +568,7 @@ const postWater3DModel = async (
 ) => {
   // tnd2png
   const cp = execa(
-    `conda activate gis && python ${[
+    `conda run -n gis python ${[
       path.join(process.cwd(), '/src/util/water/quality3D.py'),
       path.join(DATA_FOLDER_PATH, modelFolderPath),
       hours,
@@ -818,7 +819,7 @@ const postQualityWasp = async (
 
   // tnd2png
   const cp = execa(
-    `conda activate gis && python ${[
+    `conda run -n gis python ${[
       path.join(process.cwd(), '/src/util/water/qualityWasp.py'),
       path.join(DATA_FOLDER_PATH, modelFolderPath),
       hours,
@@ -1051,7 +1052,7 @@ const postQualityPhreec = async (
 ) => {
   // process mesh
   const { stdout } = await execa(
-    `conda activate gis && python ${[
+    `conda run -n gis python ${[
       path.join(process.cwd(), '/src/util/water/mesh.py'),
       path.join(DATA_FOLDER_PATH, modelFolderPath),
       'mesh20231218',
@@ -1072,7 +1073,7 @@ const postQualityPhreec = async (
   }
   // tnd2png
   const cp = execa(
-    `conda activate gis && python ${[
+    `conda run -n gis python ${[
       path.join(process.cwd(), '/src/util/water/phreec.py'),
       path.join(DATA_FOLDER_PATH, modelFolderPath),
       hours <= 48 ? hours : 48,
@@ -1286,7 +1287,7 @@ const postQualityPhreec3D = async (
 ) => {
   // process mesh
   const { stdout } = await execa(
-    `conda activate gis && python ${[
+    `conda run -n gis python ${[
       path.join(process.cwd(), '/src/util/water/mesh.py'),
       path.join(DATA_FOLDER_PATH, modelFolderPath),
       'mesh20231218',
@@ -1307,7 +1308,7 @@ const postQualityPhreec3D = async (
   }
   // tnd2png
   const cp = execa(
-    `conda activate gis && python ${[
+    `conda run -n gis python ${[
       path.join(process.cwd(), '/src/util/water/phreec3D.py'),
       path.join(DATA_FOLDER_PATH, modelFolderPath),
       hours <= 48 ? hours : 48,
@@ -1543,7 +1544,7 @@ const postSand = async (
 ) => {
   // tnd2png
   const cp = execa(
-    `conda activate gis && python ${[
+    `conda run -n gis python ${[
       path.join(process.cwd(), '/src/util/water/sand.py'),
       path.join(DATA_FOLDER_PATH, modelFolderPath),
       hours,
@@ -1760,7 +1761,7 @@ const postMud = async (
 ) => {
   // mud2png, same as quality-wasp.py
   const cp = execa(
-    `conda activate gis && python ${[
+    `conda run -n gis python ${[
       path.join(process.cwd(), '/src/util/water/mud.py'),
       path.join(DATA_FOLDER_PATH, modelFolderPath),
       hours,
@@ -2114,7 +2115,7 @@ const postSpoil = async (
 ) => {
   // mud2png, same as quality-wasp.py
   const cp = execa(
-    `conda activate gis && python ${[
+    `conda run -n gis python ${[
       path.join(process.cwd(), '/src/util/water/spoil.py'),
       path.join(DATA_FOLDER_PATH, modelFolderPath),
       hours,

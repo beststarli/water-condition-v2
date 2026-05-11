@@ -2,6 +2,10 @@ import { useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import MapboxLanguage from '@mapbox/mapbox-gl-language'
+import MapboxDraw from '@mapbox/mapbox-gl-draw'
+import 'mapbox-gl-draw/dist/mapbox-gl-draw.css'
+// @ts-expect-error no declare file for rectangle mode
+import DrawRectangle from 'mapbox-gl-draw-rectangle-mode'
 import { useFvcomStore } from '@/store/FvcomStroe'
 
 export default function FvcomMap() {
@@ -11,6 +15,11 @@ export default function FvcomMap() {
     const mapRef = useRef<mapboxgl.Map | null>(null)
     const fitBoundsRequestId = useFvcomStore((state) => state.fitBoundsRequestId)
     const fitBoundsPayload = useFvcomStore((state) => state.fitBoundsPayload)
+    const isSelectingBounds = useFvcomStore((state) => state.isSelectingBounds)
+    const setIsSelectingBounds = useFvcomStore((state) => state.setIsSelectingBounds)
+    const setAreaBounds = useFvcomStore((state) => state.setAreaBounds)
+    const setIsCreateModalOpen = useFvcomStore((state) => state.setIsCreateModalOpen)
+    const drawRef = useRef<MapboxDraw | null>(null)
 
     useEffect(() => {
         if (mapRef.current || !mapContainerRef.current) return
@@ -28,7 +37,19 @@ export default function FvcomMap() {
             }),
         )
 
+        const draw = new MapboxDraw({
+            displayControlsDefault: false,
+            modes: {
+                ...MapboxDraw.modes,
+                draw_rectangle: DrawRectangle,
+            },
+        })
+
+        mapRef.current.addControl(draw)
+        drawRef.current = draw
+
         return () => {
+            drawRef.current = null
             mapRef.current?.remove()
             mapRef.current = null
         }
@@ -60,6 +81,54 @@ export default function FvcomMap() {
             },
         )
     }, [fitBoundsRequestId, fitBoundsPayload])
+
+    useEffect(() => {
+        const map = mapRef.current
+        if (!map) return
+
+        const draw = drawRef.current
+        if (!draw) return
+
+        if (!isSelectingBounds) {
+            map.getCanvas().style.cursor = ''
+            draw.changeMode('simple_select')
+            return
+        }
+
+        map.getCanvas().style.cursor = 'crosshair'
+        draw.deleteAll()
+        draw.changeMode('draw_rectangle')
+
+        const handleDrawCreate = (event: { features: Array<GeoJSON.Feature> }) => {
+            const feature = event.features[0]
+            if (!feature || feature.geometry.type !== 'Polygon') return
+
+            const coordinates = feature.geometry.coordinates[0]
+            const lngs = coordinates.map((coord) => coord[0])
+            const lats = coordinates.map((coord) => coord[1])
+
+            setAreaBounds({
+                minLng: String(Math.min(...lngs)),
+                minLat: String(Math.min(...lats)),
+                maxLng: String(Math.max(...lngs)),
+                maxLat: String(Math.max(...lats)),
+            })
+            draw.deleteAll()
+            setIsSelectingBounds(false)
+            setIsCreateModalOpen(true)
+        }
+
+        map.on('draw.create', handleDrawCreate)
+        return () => {
+            map.off('draw.create', handleDrawCreate)
+            map.getCanvas().style.cursor = ''
+        }
+    }, [
+        isSelectingBounds,
+        setAreaBounds,
+        setIsCreateModalOpen,
+        setIsSelectingBounds,
+    ])
 
     return (
         <div className="flex h-[100%] w-[100%] items-center justify-center">

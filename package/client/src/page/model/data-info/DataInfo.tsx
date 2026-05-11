@@ -15,7 +15,6 @@ const generateEchartsOption = (dataInfo: LayerType, data: number[]) => {
   const range = max - min
   let series = null
   let legend = null
-  console.log(dataInfo)
   if (dataInfo.layerType === 'mesh') {
     legend = {
       data: ['水深'],

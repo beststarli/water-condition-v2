@@ -16,7 +16,7 @@ export default function TaskPanel({ isOpen, onToggle }: TaskPanelProps) {
 
     return (
         <div className="pointer-events-none absolute left-4 top-4 z-20 flex h-[70%]">
-            <div className={`pointer-events-auto flex h-full w-80 flex-col overflow-hidden rounded-r-md border border-slate-200 bg-white shadow transition-all duration-300 ${isOpen ? 'max-w-[20rem] opacity-100' : 'max-w-0 opacity-0'}`}>
+            <div className={`pointer-events-auto flex h-full w-80 flex-col overflow-hidden rounded-l-lg border border-slate-200 bg-white shadow transition-all duration-300 ${isOpen ? 'max-w-[20rem] opacity-100' : 'max-w-0 opacity-0'}`}>
                 <div className="border-b border-slate-200 px-4 py-3 text-sm font-medium text-slate-700">
                     运行中的 FVCOM 案例任务
                 </div>

@@ -2,21 +2,23 @@ import { create } from 'zustand'
 
 interface FvcomStoreProps {
     projectName: string | null
-    setProjectName: (value: string | null) => void
     isCreateModalOpen: boolean
-    setIsCreateModalOpen: (value: boolean) => void
     createCaseName: string
-    setCreateCaseName: (value: string) => void
     areaBounds: {
         minLng: string
         minLat: string
         maxLng: string
         maxLat: string
     }
-    setAreaBounds: (value: Partial<FvcomStoreProps['areaBounds']>) => void
     fitBoundsRequestId: number
     fitBoundsPayload: FvcomStoreProps['areaBounds'] | null
+    isSelectingBounds: boolean
+    setProjectName: (value: string | null) => void
+    setIsCreateModalOpen: (value: boolean) => void
+    setCreateCaseName: (value: string) => void
+    setAreaBounds: (value: Partial<FvcomStoreProps['areaBounds']>) => void
     requestFitBounds: (bounds: FvcomStoreProps['areaBounds']) => void
+    setIsSelectingBounds: (value: boolean) => void
 }
 
 export const useFvcomStore = create<FvcomStoreProps>((set) => ({
@@ -46,4 +48,6 @@ export const useFvcomStore = create<FvcomStoreProps>((set) => ({
             fitBoundsRequestId: state.fitBoundsRequestId + 1,
             fitBoundsPayload: bounds,
         })),
+    isSelectingBounds: false,
+    setIsSelectingBounds: (value) => set({ isSelectingBounds: value }),
 }))

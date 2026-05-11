@@ -53,7 +53,6 @@ const runModelAction = async (
         },
     })
     if (result.data === null) return false
-    console.log(result)
     const modelID = result.data
     setInitStatus(projectID, modelID, `${areaName}-${modelType}`)
     setRunStatus(projectID)
@@ -85,7 +84,6 @@ const runModelAction = async (
                 }
 
                 setErrorStatus(projectID)
-                console.log('2222')
                 message.error('模型运行失败')
 
                 return

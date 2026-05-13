@@ -7,57 +7,61 @@ import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
 import { fastify } from 'fastify'
 import { globalErrorHandler } from './app.handler'
 import { DATA_FOLDER_PATH } from '@/config/env'
+import { fvcomRoute } from '@/feature/fvcom/fvcom.route'
 
 const initializeFastifyPlugin = async (app: FastifyTypebox) => {
-  // cors
-  app.register(import('@fastify/cors'))
-  // helmet
-  app.register(import('@fastify/helmet'))
-  // parse application/x-www-form-urlencoded
-  app.register(import('@fastify/formbody'))
-  // parse multipart/*
-  app.register(import('@fastify/multipart'))
+    // cors
+    app.register(import('@fastify/cors'))
+    // helmet
+    app.register(import('@fastify/helmet'))
+    // parse application/x-www-form-urlencoded
+    app.register(import('@fastify/formbody'))
+    // parse multipart/*
+    app.register(import('@fastify/multipart'))
 }
 
 const initializeCustomPlugin = async (app: FastifyTypebox) => {
-  // errorHandler
-  app.register(globalErrorHandler)
+    // errorHandler
+    app.register(globalErrorHandler)
 }
 
 const initializeRoutes = (app: FastifyTypebox) => {
-  app.register(projectRoute, {
-    prefix: '/api/v1/project',
-  })
-  app.register(datasetRoute, {
-    prefix: '/api/v1/dataset',
-  })
-  app.register(dataRoute, {
-    prefix: '/api/v1/data',
-  })
-  app.register(modelRoute, {
-    prefix: '/api/v1/model',
-  })
+    app.register(projectRoute, {
+        prefix: '/api/v1/project',
+    })
+    app.register(datasetRoute, {
+        prefix: '/api/v1/dataset',
+    })
+    app.register(dataRoute, {
+        prefix: '/api/v1/data',
+    })
+    app.register(modelRoute, {
+        prefix: '/api/v1/model',
+    })
+    app.register(fvcomRoute, {
+        prefix: '/api/v1/fvcom',
+    })
 }
 
 export const startApp = async (port: number) => {
-  const app = fastify({
-    logger: {
-      level: 'info',
-      file:
-        process.env.NODE_ENV === 'dev'
-          ? undefined
-          : process.cwd() + '/log/info.txt',
-    },
-  }).withTypeProvider<TypeBoxTypeProvider>()
+    const app = fastify({
+        logger: {
+            level: 'info',
+            file:
+                process.env.NODE_ENV === 'dev'
+                    ? undefined
+                    : process.cwd() + '/log/info.txt',
+        },
+    }).withTypeProvider<TypeBoxTypeProvider>()
 
-  initializeFastifyPlugin(app)
-  initializeCustomPlugin(app)
-  initializeRoutes(app)
+    initializeFastifyPlugin(app)
+    initializeCustomPlugin(app)
+    initializeRoutes(app)
 
-  try {
-    await app.listen({ port })
-    console.log(process.cwd(), port, DATA_FOLDER_PATH, process.env.NODE_ENV)
-  } catch (err) {
-    app.log.error(err)
-  }
+    try {
+        await app.listen({ port })
+        console.log(process.cwd(), port, DATA_FOLDER_PATH, process.env.NODE_ENV)
+    } catch (err) {
+        app.log.error(err)
+    }
 }

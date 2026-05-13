@@ -85,10 +85,12 @@ CREATE TABLE "project_dataset" (
 
 -- CreateTable
 CREATE TABLE "case" (
-  "case_id" UUID NOT NULL,
-  "case_name" TEXT NOT NULL,
-  "area_bounds" DOUBLE PRECISION[] NOT NULL,
-  CONSTRAINT "case_pkey" PRIMARY KEY ("case_id")
+    case_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    case_name   TEXT NOT NULL,
+    area_bounds DOUBLE PRECISION[] NOT NULL,
+    file_paths  TEXT[] NOT NULL DEFAULT '{}',
+    status      TEXT NOT NULL DEFAULT 'idle',
+    progress    DOUBLE PRECISION NOT NULL DEFAULT 0
 );
 
 -- CreateIndex

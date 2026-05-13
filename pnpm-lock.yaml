@@ -11,6 +11,9 @@ importers:
       lucide-react:
         specifier: ^1.14.0
         version: 1.14.0(react@18.3.1)
+      prisma:
+        specifier: ^5.22.0
+        version: 5.22.0
     devDependencies:
       '@commitlint/cli':
         specifier: ^17.8.1

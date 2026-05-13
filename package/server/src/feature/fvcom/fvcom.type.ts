@@ -12,12 +12,15 @@ export const FvcomCaseItemSchema = Type.Object({
         Type.Number(),
         Type.Number(),
     ]),
+    filePaths: Type.Array(Type.String()),
+    status: Type.String(),
+    progress: Type.Number(),
 })
 
 export const FvcomCaseListSchema = Type.Array(FvcomCaseItemSchema)
 
 export const FvcomCaseActionReqSchema = Type.Object({
-    action: Type.Union([Type.Literal('create'), Type.Literal('delete')]),
+    action: Type.Union([Type.Literal('create'), Type.Literal('delete'), Type.Literal('reset')]),
     caseID: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     caseName: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     caseBounds: Type.Optional(Type.Union([Type.Array(Type.Number()), Type.Null()])),

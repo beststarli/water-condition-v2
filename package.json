@@ -48,6 +48,7 @@
     "vitest": "^1.4.0"
   },
   "dependencies": {
-    "lucide-react": "^1.14.0"
+    "lucide-react": "^1.14.0",
+    "prisma": "^5.22.0"
   }
 }

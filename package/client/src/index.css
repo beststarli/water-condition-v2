@@ -11,9 +11,11 @@
 .anticon svg {
   vertical-align: baseline;
 }
+
 .ant-btn-primary {
   background-color: #1677ff;
 }
+
 .ant-btn-default,
 .ant-btn-dashed {
   background-color: white;
@@ -27,12 +29,28 @@
   display: flex;
   flex-direction: row-reverse;
 }
+
 .ant-tree-node-content-wrapper .ant-tree-title {
   margin-right: auto;
 }
+
 .ant-tree-node-content-wrapper .ant-tree-iconEle {
   font-size: 18px;
 }
+
 .ant-tree-node-content-wrapper .ant-tree-iconEle:hover {
   color: #4096ff;
+}
+
+.hide-scrollbar {
+  overflow-y: auto;
+  /* Firefox */
+  scrollbar-width: none;
+  /* IE/Edge */
+  -ms-overflow-style: none;
+}
+
+/* Chrome/Safari */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }

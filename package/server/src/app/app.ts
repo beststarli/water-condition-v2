@@ -17,7 +17,11 @@ const initializeFastifyPlugin = async (app: FastifyTypebox) => {
     // parse application/x-www-form-urlencoded
     app.register(import('@fastify/formbody'))
     // parse multipart/*
-    app.register(import('@fastify/multipart'))
+    app.register(import('@fastify/multipart'), {
+        limits: {
+            fileSize: 1073741824, // 1GB
+        },
+    })
 }
 
 const initializeCustomPlugin = async (app: FastifyTypebox) => {

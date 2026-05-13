@@ -19,6 +19,17 @@ interface FvcomStoreProps {
     setAreaBounds: (value: Partial<FvcomStoreProps['areaBounds']>) => void
     requestFitBounds: (bounds: FvcomStoreProps['areaBounds']) => void
     setIsSelectingBounds: (value: boolean) => void
+
+    // 當前選中的案例
+    selectedCaseID: string | null
+    selectedCaseName: string | null
+    selectedFilePaths: string[]
+    setCurrentCase: (caseID: string, caseName: string, filePaths: string[]) => void
+    clearCurrentCase: () => void
+
+    // 任務面板刷新信號
+    taskRefreshTrigger: number
+    triggerTaskRefresh: () => void
 }
 
 export const useFvcomStore = create<FvcomStoreProps>((set) => ({
@@ -50,4 +61,25 @@ export const useFvcomStore = create<FvcomStoreProps>((set) => ({
         })),
     isSelectingBounds: false,
     setIsSelectingBounds: (value) => set({ isSelectingBounds: value }),
+
+    // 當前選中的案例
+    selectedCaseID: null,
+    selectedCaseName: null,
+    selectedFilePaths: [],
+    setCurrentCase: (caseID, caseName, filePaths) =>
+        set({
+            selectedCaseID: caseID,
+            selectedCaseName: caseName,
+            selectedFilePaths: filePaths,
+            projectName: caseName,
+        }),
+    clearCurrentCase: () =>
+        set({
+            selectedCaseID: null,
+            selectedCaseName: null,
+            selectedFilePaths: [],
+        }),
+    taskRefreshTrigger: 0,
+    triggerTaskRefresh: () =>
+        set((state) => ({ taskRefreshTrigger: state.taskRefreshTrigger + 1 })),
 }))

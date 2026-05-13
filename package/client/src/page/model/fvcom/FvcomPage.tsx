@@ -7,7 +7,7 @@ import FvcomLayer from './FvcomLayer'
 
 export default function FvcomPage() {
     const projectName = useFvcomStore((state) => state.projectName)
-    const [isPanelOpen, setIsPanelOpen] = useState(true)
+    const [isPanelOpen, setIsPanelOpen] = useState(false)
 
 
     return (

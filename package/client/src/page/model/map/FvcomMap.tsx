@@ -107,11 +107,13 @@ export default function FvcomMap() {
             const lngs = coordinates.map((coord) => coord[0])
             const lats = coordinates.map((coord) => coord[1])
 
+            const toFixed4 = (value: number) => value.toFixed(4)
+
             setAreaBounds({
-                minLng: String(Math.min(...lngs)),
-                minLat: String(Math.min(...lats)),
-                maxLng: String(Math.max(...lngs)),
-                maxLat: String(Math.max(...lats)),
+                minLng: toFixed4(Math.min(...lngs)),
+                minLat: toFixed4(Math.min(...lats)),
+                maxLng: toFixed4(Math.max(...lngs)),
+                maxLat: toFixed4(Math.max(...lats)),
             })
             draw.deleteAll()
             setIsSelectingBounds(false)

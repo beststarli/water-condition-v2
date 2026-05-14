@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import FvcomMap from '../map/FvcomMap'
 import { useFvcomStore } from '@/store/FvcomStroe'
-import FvcomSetting from './FvcomSetting'
-import TaskPanel from './taskPanel'
+import FvcomSetting from './settingPanel/FvcomSetting'
+import TaskPanel from './taskPanel/taskPanel'
 import FvcomLayer from './FvcomLayer'
 
 export default function FvcomPage() {

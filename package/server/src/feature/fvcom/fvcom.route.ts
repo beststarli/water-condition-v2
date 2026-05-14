@@ -8,6 +8,7 @@ import {
 } from './fvcom.type'
 import { randomUUID } from 'crypto'
 import { fvcomService } from './fvcom.service'
+import { fvcomEventBus, FvcomEvent } from './fvcom.event'
 import { generateResponse } from '@/util/typebox'
 import { DATA_FOLDER_PATH } from '@/config/env'
 import { createWriteStream } from 'fs'
@@ -237,6 +238,37 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
 
             req.raw.on('close', () => {
                 clearInterval(pollInterval)
+            })
+        },
+    })
+
+    // SSE — 任務面板統一推送所有活躍案例狀態（事件驅動，無輪詢）
+    app.route({
+        method: 'GET',
+        url: '/progress/tasks',
+        handler: async (req, reply) => {
+            reply.raw.writeHead(200, {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+            })
+
+            // 立即推送當前狀態
+            const sendActiveCases = async () => {
+                const cases = await fvcomService.getAllCases()
+                const activeCases = cases.filter(
+                    (c) => c.status === 'running' || c.status === 'completed',
+                )
+                reply.raw.write(`data: ${JSON.stringify(activeCases)}\n\n`)
+            }
+            await sendActiveCases()
+
+            // 後續僅在狀態變更時推送
+            const onProgress = () => sendActiveCases()
+            fvcomEventBus.on(FvcomEvent.CASE_PROGRESS, onProgress)
+
+            req.raw.on('close', () => {
+                fvcomEventBus.off(FvcomEvent.CASE_PROGRESS, onProgress)
             })
         },
     })

@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useFvcomStore } from '@/store/FvcomStroe'
-import { getCaseListAPI, resetCaseStatusAPI } from './fvcom.api'
+import { resetCaseStatusAPI } from '../../../../api/fvcom/fvcom.api'
 import TaskCard from './TaskCard'
 
 type RunningCase = {
     caseID: string
     caseName: string
     progress: number
+    status: string
 }
 
 type TaskPanelProps = {
@@ -17,35 +18,44 @@ type TaskPanelProps = {
 
 export default function TaskPanel({ isOpen, onToggle }: TaskPanelProps) {
     const [tasks, setTasks] = useState<RunningCase[]>([])
-    const [loading, setLoading] = useState(false)
-    const taskRefreshTrigger = useFvcomStore((state) => state.taskRefreshTrigger)
-
-    const fetchRunningCases = async () => {
-        setLoading(true)
-        try {
-            const result = await getCaseListAPI()
-            if (result.status === 'success' && result.data) {
-                const running = result.data.filter(
-                    (item: { status: string }) => item.status === 'running',
-                )
-                setTasks(running)
-            }
-        } catch (error) {
-            console.error('获取运行案例失败:', error)
-        } finally {
-            setLoading(false)
-        }
-    }
+    const [initialLoading, setInitialLoading] = useState(true)
+    const watchedTaskIds = useFvcomStore((state) => state.watchedTaskIds)
+    const removeWatchedTaskId = useFvcomStore((state) => state.removeWatchedTaskId)
 
     useEffect(() => {
         if (!isOpen) return
-        fetchRunningCases()
-    }, [isOpen, taskRefreshTrigger])
+
+        setInitialLoading(true)
+
+        const es = new EventSource('/api/v1/fvcom/progress/tasks')
+
+        es.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data)
+                setTasks(data.filter(
+                    (item: { status: string }) =>
+                        item.status === 'running' || item.status === 'completed',
+                ))
+            } catch (e) {
+                console.error('SSE 数据解析失败:', e)
+            } finally {
+                setInitialLoading(false)
+            }
+        }
+
+        return () => es.close()
+    }, [isOpen])
 
     const handleCancelTask = async (caseID: string) => {
-        await resetCaseStatusAPI(caseID)
-        fetchRunningCases()
+        const result = await resetCaseStatusAPI(caseID)
+        if (result.status !== 'success') {
+            console.error('取消任务失败:', result.message)
+            return
+        }
+        removeWatchedTaskId(caseID)
     }
+
+    const visibleTasks = tasks.filter((t) => watchedTaskIds.includes(t.caseID))
 
     return (
         <div className="pointer-events-none absolute left-4 top-4 z-20 flex h-[70%]">
@@ -56,16 +66,17 @@ export default function TaskPanel({ isOpen, onToggle }: TaskPanelProps) {
                     运行中的 FVCOM 案例任务
                 </div>
                 <div className="flex-1 min-h-0 space-y-3 overflow-y-auto px-4 py-3">
-                    {loading ? (
+                    {initialLoading ? (
                         <div className="text-sm text-slate-500">加载中...</div>
-                    ) : tasks.length === 0 ? (
+                    ) : visibleTasks.length === 0 ? (
                         <div className="text-sm text-slate-500">暂无运行中案例</div>
                     ) : (
-                        tasks.map((task) => (
+                        visibleTasks.map((task) => (
                             <TaskCard
                                 key={task.caseID}
                                 name={task.caseName}
                                 progress={Math.round(task.progress * 100)}
+                                status={task.status as 'running' | 'completed'}
                                 onCancel={() => handleCancelTask(task.caseID)}
                             />
                         ))

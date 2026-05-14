@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFvcomStore } from '@/store/FvcomStroe'
 import { Trash2, FileText, Loader2 } from 'lucide-react'
-import { createCaseActionAPI, uploadFilesAPI, executeModelAPI } from './fvcom.api'
+import { createCaseActionAPI, uploadFilesAPI, executeModelAPI, getCaseDetailAPI } from '../../../../api/fvcom/fvcom.api'
 import CaseListPanel from './CaseListPanel'
 import CreateCaseModal from './CreateCaseModal'
 
@@ -22,6 +22,8 @@ export default function FvcomSetting() {
     const selectedCaseID = useFvcomStore((state) => state.selectedCaseID)
     const selectedFilePaths = useFvcomStore((state) => state.selectedFilePaths)
     const setCurrentCase = useFvcomStore((state) => state.setCurrentCase)
+    const triggerTaskRefresh = useFvcomStore((state) => state.triggerTaskRefresh)
+    const addWatchedTaskId = useFvcomStore((state) => state.addWatchedTaskId)
     const [fileList, setFileList] = useState<UploadedFile[]>([])
     const [uploading, setUploading] = useState(false)
     const [isCaseListOpen, setIsCaseListOpen] = useState(false)
@@ -47,17 +49,31 @@ export default function FvcomSetting() {
         return () => observer.disconnect()
     }, [])
 
-    // 當從「查看」按鈕選中案例時，更新文件列表
+    // 當從「查看」按鈕選中案例時，同步文件列表
     useEffect(() => {
-        if (selectedCaseID && selectedFilePaths.length > 0) {
-            setFileList(
-                selectedFilePaths.map((p) => ({
-                    path: p,
-                    name: p.split(/[\\/]/).pop() || p,
-                })),
-            )
-        }
+        if (!selectedCaseID) return
+        setFileList(
+            selectedFilePaths.map((p) => ({
+                path: p,
+                name: p.split(/[\\/]/).pop() || p,
+            })),
+        )
     }, [selectedCaseID, selectedFilePaths])
+
+    // 切換案例時，根據實際狀態更新執行按鈕
+    useEffect(() => {
+        if (!selectedCaseID) {
+            setExecuting(false)
+            return
+        }
+        getCaseDetailAPI(selectedCaseID).then((result) => {
+            if (result.status === 'success' && result.data) {
+                setExecuting(result.data.status === 'running')
+            } else {
+                setExecuting(false)
+            }
+        })
+    }, [selectedCaseID])
 
     const visibleRange = useMemo(() => {
         if (listHeight === 0) {
@@ -98,7 +114,7 @@ export default function FvcomSetting() {
         }
 
         // 儲存建立的案例 ID
-        setCurrentCase(result.data, createCaseName.trim() || '未命名案例', [])
+        setCurrentCase(result.data, createCaseName.trim() || '未命名案例', [], [minLng, minLat, maxLng, maxLat])
 
         requestFitBounds({
             minLng: String(minLng),
@@ -107,10 +123,6 @@ export default function FvcomSetting() {
             maxLat: String(maxLat),
         })
         setIsCreateModalOpen(false)
-    }
-
-    const handleOpenFilePicker = () => {
-        fileInputRef.current?.click()
     }
 
     const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,7 +174,10 @@ export default function FvcomSetting() {
             const result = await executeModelAPI(caseID, fileList.map((f) => f.path))
             if (result.status !== 'success') {
                 setExecuting(false)
+                return
             }
+            addWatchedTaskId(caseID)
+            triggerTaskRefresh()
         } catch (error) {
             setExecuting(false)
         }
@@ -209,8 +224,8 @@ export default function FvcomSetting() {
                             </button>
                             <button
                                 type="button"
-                                onClick={handleOpenFilePicker}
-                                disabled={uploading || executing}
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={uploading || executing || !selectedCaseID}
                                 className="rounded-md bg-[#135eb0] px-3 py-1 text-xs text-white disabled:opacity-50"
                             >
                                 {uploading ? '上传中...' : '上传文件'}

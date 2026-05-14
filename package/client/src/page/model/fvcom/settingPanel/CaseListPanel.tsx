@@ -11,9 +11,9 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { useFvcomStore } from '@/store/FvcomStroe'
-import { deleteCaseActionAPI, getCaseListAPI } from './fvcom.api'
+import { deleteCaseActionAPI, getCaseListAPI } from '../../../../api/fvcom/fvcom.api'
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 
 type CaseListItem = {
     caseID: string
@@ -148,6 +148,7 @@ export default function CaseListPanel({ isOpen, onClose }: CaseListPanelProps) {
                                                     item.caseID,
                                                     item.caseName,
                                                     item.filePaths,
+                                                    item.areaBounds,
                                                 )
                                                 onClose()
                                             }}

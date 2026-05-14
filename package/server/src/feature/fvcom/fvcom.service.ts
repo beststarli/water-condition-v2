@@ -1,4 +1,5 @@
 import { orm } from "@/dao"
+import { fvcomEventBus, FvcomEvent } from "./fvcom.event"
 
 export const fvcomService = {
     createCase: async (
@@ -45,5 +46,6 @@ export const fvcomService = {
 
     updateCaseProgress: async (caseID: string, progress: number, status: string) => {
         await orm.fvcom.updateCaseProgress(caseID, progress, status)
+        fvcomEventBus.emit(FvcomEvent.CASE_PROGRESS, { caseID, progress, status })
     },
 }

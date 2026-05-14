@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import MapboxLanguage from '@mapbox/mapbox-gl-language'
@@ -7,6 +7,7 @@ import 'mapbox-gl-draw/dist/mapbox-gl-draw.css'
 // @ts-expect-error no declare file for rectangle mode
 import DrawRectangle from 'mapbox-gl-draw-rectangle-mode'
 import { useFvcomStore } from '@/store/FvcomStroe'
+import MiniMap from './MiniMap'
 
 export default function FvcomMap() {
     mapboxgl.accessToken = 'pk.eyJ1Ijoia3hoNDg5MjYzNiIsImEiOiJjbGFhcWYyNmcwNHF3M25vNXJqaW95bDZsIn0.ID03BpkSU7-I0OcehcrvlQ'
@@ -20,6 +21,7 @@ export default function FvcomMap() {
     const setAreaBounds = useFvcomStore((state) => state.setAreaBounds)
     const setIsCreateModalOpen = useFvcomStore((state) => state.setIsCreateModalOpen)
     const drawRef = useRef<MapboxDraw | null>(null)
+    const [zoom, setZoom] = useState(8)
 
     useEffect(() => {
         if (mapRef.current || !mapContainerRef.current) return
@@ -47,6 +49,10 @@ export default function FvcomMap() {
 
         mapRef.current.addControl(draw)
         drawRef.current = draw
+
+        const updateZoom = () => setZoom(Math.round(mapRef.current!.getZoom() * 100) / 100)
+        mapRef.current.on('zoom', updateZoom)
+        mapRef.current.on('moveend', updateZoom)
 
         return () => {
             drawRef.current = null
@@ -133,8 +139,9 @@ export default function FvcomMap() {
     ])
 
     return (
-        <div className="flex h-[100%] w-[100%] items-center justify-center">
+        <div className="relative h-full w-full">
             <div ref={mapContainerRef} className="h-full w-full" />
+            <MiniMap zoom={zoom} />
         </div>
     )
 }

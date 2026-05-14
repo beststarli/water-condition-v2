@@ -24,6 +24,7 @@ export default function FvcomSetting() {
     const setCurrentCase = useFvcomStore((state) => state.setCurrentCase)
     const triggerTaskRefresh = useFvcomStore((state) => state.triggerTaskRefresh)
     const addWatchedTaskId = useFvcomStore((state) => state.addWatchedTaskId)
+    const executingRefreshTrigger = useFvcomStore((state) => state.executingRefreshTrigger)
     const [fileList, setFileList] = useState<UploadedFile[]>([])
     const [uploading, setUploading] = useState(false)
     const [isCaseListOpen, setIsCaseListOpen] = useState(false)
@@ -73,7 +74,7 @@ export default function FvcomSetting() {
                 setExecuting(false)
             }
         })
-    }, [selectedCaseID])
+    }, [selectedCaseID, executingRefreshTrigger])
 
     const visibleRange = useMemo(() => {
         if (listHeight === 0) {

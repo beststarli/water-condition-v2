@@ -21,6 +21,7 @@ export default function TaskPanel({ isOpen, onToggle }: TaskPanelProps) {
     const [initialLoading, setInitialLoading] = useState(true)
     const watchedTaskIds = useFvcomStore((state) => state.watchedTaskIds)
     const removeWatchedTaskId = useFvcomStore((state) => state.removeWatchedTaskId)
+    const addWatchedTaskId = useFvcomStore((state) => state.addWatchedTaskId)
 
     useEffect(() => {
         if (!isOpen) return
@@ -32,10 +33,19 @@ export default function TaskPanel({ isOpen, onToggle }: TaskPanelProps) {
         es.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data)
-                setTasks(data.filter(
+                const active = data.filter(
                     (item: { status: string }) =>
                         item.status === 'running' || item.status === 'completed',
-                ))
+                )
+                setTasks(active)
+
+                // 自動追蹤尚未關注的 running 任務（瀏覽器刷新後恢復）
+                const currentWatched = useFvcomStore.getState().watchedTaskIds
+                active.forEach((item: RunningCase) => {
+                    if (item.status === 'running' && !currentWatched.includes(item.caseID)) {
+                        addWatchedTaskId(item.caseID)
+                    }
+                })
             } catch (e) {
                 console.error('SSE 数据解析失败:', e)
             } finally {
@@ -53,12 +63,15 @@ export default function TaskPanel({ isOpen, onToggle }: TaskPanelProps) {
             return
         }
         removeWatchedTaskId(caseID)
+        useFvcomStore.getState().triggerExecutingRefresh()
     }
 
-    const visibleTasks = tasks.filter((t) => watchedTaskIds.includes(t.caseID))
+    const visibleTasks = tasks
+        .filter((t) => watchedTaskIds.includes(t.caseID))
+        .sort((a, b) => watchedTaskIds.indexOf(a.caseID) - watchedTaskIds.indexOf(b.caseID))
 
     return (
-        <div className="pointer-events-none absolute left-4 top-4 z-20 flex h-[70%]">
+        <div className="pointer-events-none absolute left-2 top-2 z-20 flex h-[70%]">
             <div
                 className={`pointer-events-auto flex h-full w-80 flex-col overflow-hidden rounded-l-lg rounded-br-lg border border-slate-200 bg-white shadow transition-all duration-300 ${isOpen ? 'max-w-[20rem] opacity-100' : 'max-w-0 opacity-0'}`}
             >

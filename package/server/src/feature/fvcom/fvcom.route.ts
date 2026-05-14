@@ -92,6 +92,7 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
                     if (!caseID) {
                         throw Error('重置的案例ID为空')
                     }
+                    stopMockComputation(caseID)
                     await fvcomService.updateCaseProgress(caseID, 0, 'idle')
                     return null
                 },
@@ -139,6 +140,7 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
 
     // Mock — 模擬計算後端進度更新
     // TODO: 刪除此函數，改為呼叫計算後端的真實 API
+    const mockIntervals = new Map<string, NodeJS.Timeout>()
     const startMockComputation = (caseID: string) => {
         let step = 0
         const interval = setInterval(() => {
@@ -158,6 +160,7 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
             if (progress >= 1) {
                 status = 'completed'
                 clearInterval(interval)
+                mockIntervals.delete(caseID)
             }
 
             // 同步更新 DB 中的進度與狀態
@@ -167,6 +170,15 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
                 fvcomService.updateCaseProgress(caseID, 1, 'completed')
             }
         }, 2000)
+        mockIntervals.set(caseID, interval)
+    }
+
+    const stopMockComputation = (caseID: string) => {
+        const interval = mockIntervals.get(caseID)
+        if (interval) {
+            clearInterval(interval)
+            mockIntervals.delete(caseID)
+        }
     }
 
     // 啟動模型計算

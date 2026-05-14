@@ -36,6 +36,10 @@ interface FvcomStoreProps {
     watchedTaskIds: string[]
     addWatchedTaskId: (id: string) => void
     removeWatchedTaskId: (id: string) => void
+
+    // 執行按鈕狀態刷新信號（取消任務時觸發）
+    executingRefreshTrigger: number
+    triggerExecutingRefresh: () => void
 }
 
 export const useFvcomStore = create<FvcomStoreProps>((set) => ({
@@ -102,4 +106,7 @@ export const useFvcomStore = create<FvcomStoreProps>((set) => ({
         set((state) => ({
             watchedTaskIds: state.watchedTaskIds.filter((i) => i !== id),
         })),
+    executingRefreshTrigger: 0,
+    triggerExecutingRefresh: () =>
+        set((state) => ({ executingRefreshTrigger: state.executingRefreshTrigger + 1 })),
 }))

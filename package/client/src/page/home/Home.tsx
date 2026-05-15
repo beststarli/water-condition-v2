@@ -11,7 +11,7 @@ import mud from '@/assert/mud.png'
 import ewe from '@/assert/ewe.png'
 import eweWater from '@/assert/ewe-water.png'
 import spoil from '@/assert/spoil.png'
-import fvcom from '@/assert/spoil.png'
+import fvcom from '@/assert/fvcom.png'
 
 export const Home = () => {
     const homeRef = useRef<HTMLDivElement | null>(null)
@@ -35,7 +35,7 @@ export const Home = () => {
                 Number(homeRef.current!.style.top.replace('px', '')),
             )
             if (direction === 'down') {
-                if (value >= 4 * viewHeight) return
+                if (value >= 5 * viewHeight) return
                 homeRef.current!.style.top = -(value + viewHeight) + 'px'
             } else {
                 if (value <= 0) return

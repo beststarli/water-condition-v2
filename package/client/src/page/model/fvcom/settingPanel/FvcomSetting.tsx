@@ -30,8 +30,8 @@ export default function FvcomSetting() {
     const [isCaseListOpen, setIsCaseListOpen] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
-    // 模型計算執行狀態
-    const [executing, setExecuting] = useState(false)
+    // 案例執行狀態：idle | running | completed | error
+    const [caseStatus, setCaseStatus] = useState<'idle' | 'running' | 'completed' | 'error'>('idle')
 
     // 虚拟列表
     const listRef = useRef<HTMLDivElement>(null)
@@ -64,14 +64,14 @@ export default function FvcomSetting() {
     // 切換案例時，根據實際狀態更新執行按鈕
     useEffect(() => {
         if (!selectedCaseID) {
-            setExecuting(false)
+            setCaseStatus('idle')
             return
         }
         getCaseDetailAPI(selectedCaseID).then((result) => {
             if (result.status === 'success' && result.data) {
-                setExecuting(result.data.status === 'running')
+                setCaseStatus(result.data.status)
             } else {
-                setExecuting(false)
+                setCaseStatus('idle')
             }
         })
     }, [selectedCaseID, executingRefreshTrigger])
@@ -169,18 +169,18 @@ export default function FvcomSetting() {
         const caseID = selectedCaseID
         if (!caseID || fileList.length === 0) return
 
-        setExecuting(true)
+        setCaseStatus('running')
 
         try {
             const result = await executeModelAPI(caseID, fileList.map((f) => f.path))
             if (result.status !== 'success') {
-                setExecuting(false)
+                setCaseStatus('idle')
                 return
             }
             addWatchedTaskId(caseID)
             triggerTaskRefresh()
         } catch (error) {
-            setExecuting(false)
+            setCaseStatus('idle')
         }
     }
 
@@ -188,6 +188,14 @@ export default function FvcomSetting() {
         setIsCreateModalOpen(false)
         setIsSelectingBounds(true)
     }
+
+    const isRunning = caseStatus === 'running'
+
+    const buttonLabel = isRunning
+        ? '运行中'
+        : caseStatus === 'completed'
+            ? '重新计算'
+            : '执行模型计算'
 
     return (
         <div className="flex-1 min-h-0">
@@ -218,7 +226,7 @@ export default function FvcomSetting() {
                             <button
                                 type="button"
                                 onClick={handleClearFiles}
-                                disabled={uploading || fileList.length === 0 || executing}
+                                disabled={uploading || fileList.length === 0 || isRunning}
                                 className="rounded-md border border-red-500 px-3 py-1 text-xs text-red-500 disabled:opacity-50"
                             >
                                 全部清除
@@ -226,7 +234,7 @@ export default function FvcomSetting() {
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                disabled={uploading || executing || !selectedCaseID}
+                                disabled={uploading || isRunning || !selectedCaseID}
                                 className="rounded-md bg-[#135eb0] px-3 py-1 text-xs text-white disabled:opacity-50"
                             >
                                 {uploading ? '上传中...' : '上传文件'}
@@ -282,7 +290,7 @@ export default function FvcomSetting() {
                                                     <div className="flex min-w-0 flex-1 items-center">
                                                         <FileText className="mr-2 h-4 w-4 shrink-0 text-slate-400" />
                                                         <span className="truncate" title={item.path}>
-                                                            {item.path}
+                                                            {item.path.split('/').pop()}
                                                         </span>
                                                     </div>
                                                     <button
@@ -304,10 +312,11 @@ export default function FvcomSetting() {
                     <button
                         type="button"
                         onClick={handleExecute}
-                        disabled={fileList.length === 0 || executing || !selectedCaseID}
+                        disabled={fileList.length === 0 || isRunning || !selectedCaseID}
                         className="w-full rounded-md bg-[#135eb0] py-2 text-sm text-white disabled:opacity-50"
                     >
-                        {executing ? '运行中' : '执行模型计算'}
+                        {isRunning && <Loader2 className="mr-2 inline-block h-4 w-4 animate-spin" />}
+                        {buttonLabel}
                     </button>
                 </div>
             </div>

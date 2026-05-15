@@ -473,6 +473,7 @@ export const ModelParamEditor = () => {
     ewe: <></>,
     'water-ewe': <WaterEweParamEditor></WaterEweParamEditor>,
     spoil: <SpoilParamEditor></SpoilParamEditor>,
+    fvcom: <></>,
   }
   const uploadPanel = componentMap[modelType!]
 

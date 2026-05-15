@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { useMetaStore } from '@/store/metaStore'
 import { useEffect, useLayoutEffect } from 'react'
 import { useLocation, useNavigate, useRoutes } from 'react-router-dom'
@@ -29,5 +30,9 @@ export const Router = () => {
     }
   }, [location])
 
-  return <div>{element}</div>
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center text-slate-400 text-sm">加载中...</div>}>
+      {element}
+    </Suspense>
+  )
 }

@@ -1,7 +1,9 @@
+import { lazy } from 'react'
 import { Home } from '@/page'
-import { ModelPage } from '@/page/model'
-import FvcomPage from '@/page/model/fvcom/FvcomPage'
 import { Navigate, RouteObject } from 'react-router-dom'
+
+const ModelPage = lazy(() => import('@/page/model').then((m) => ({ default: m.ModelPage })))
+const FvcomPage = lazy(() => import('@/page/model/fvcom/FvcomPage'))
 
 export const routes: RouteObject[] = [
     {

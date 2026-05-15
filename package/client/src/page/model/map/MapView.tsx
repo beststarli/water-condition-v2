@@ -2,6 +2,7 @@ import { useMapStore } from '@/store/mapStore'
 import { GetMap } from '@/util/customLayer/cusLayer'
 import MapboxLanguage from '@mapbox/mapbox-gl-language'
 import mapboxgl from 'mapbox-gl'
+import 'mapbox-gl/dist/mapbox-gl.css'
 import { useEffect, useRef } from 'react'
 import { MapStatus } from './MapStatus'
 

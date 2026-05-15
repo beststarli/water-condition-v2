@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useFvcomStore } from '@/store/FvcomStroe'
 import { resetCaseStatusAPI } from '../../../../api/fvcom/fvcom.api'
@@ -22,11 +22,13 @@ export default function TaskPanel({ isOpen, onToggle }: TaskPanelProps) {
     const watchedTaskIds = useFvcomStore((state) => state.watchedTaskIds)
     const removeWatchedTaskId = useFvcomStore((state) => state.removeWatchedTaskId)
     const addWatchedTaskId = useFvcomStore((state) => state.addWatchedTaskId)
+    const prevStatusMap = useRef<Record<string, string>>({})
 
     useEffect(() => {
         if (!isOpen) return
 
         setInitialLoading(true)
+        prevStatusMap.current = {}
 
         const es = new EventSource('/api/v1/fvcom/progress/tasks')
 
@@ -38,6 +40,20 @@ export default function TaskPanel({ isOpen, onToggle }: TaskPanelProps) {
                         item.status === 'running' || item.status === 'completed',
                 )
                 setTasks(active)
+
+                // 檢測 running → completed/error 的狀態過渡，通知 FvcomSetting 更新按鈕狀態
+                const prev = prevStatusMap.current
+                const next: Record<string, string> = {}
+                active.forEach((item: RunningCase) => { next[item.caseID] = item.status })
+                prevStatusMap.current = next
+
+                const hasCompletion = active.some(
+                    (item: RunningCase) =>
+                        prev[item.caseID] === 'running' && (item.status === 'completed' || item.status === 'error'),
+                )
+                if (hasCompletion) {
+                    useFvcomStore.getState().triggerExecutingRefresh()
+                }
 
                 // 自動追蹤尚未關注的 running 任務（瀏覽器刷新後恢復）
                 const currentWatched = useFvcomStore.getState().watchedTaskIds

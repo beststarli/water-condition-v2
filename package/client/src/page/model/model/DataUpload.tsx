@@ -329,6 +329,7 @@ export const DataUpload = () => {
     ewe: <EWEUpload></EWEUpload>,
     'water-ewe': <WaterEweUpload></WaterEweUpload>,
     spoil: <SpoilUpload></SpoilUpload>,
+    fvcom: <></>,
   }
   const uploadPanel = componentMap[modelType!]
 

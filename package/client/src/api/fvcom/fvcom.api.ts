@@ -97,10 +97,12 @@ export const getCaseListAPI = async () => {
 
 export const uploadFilesAPI = async (
     files: File[],
+    caseID: string,
 ): Promise<DataFetchAPIInterface<string[]>> => {
     const url = '/api/v1/fvcom/upload'
     try {
         const formData = new FormData()
+        formData.append('caseID', caseID)
         files.forEach((file) => formData.append('files', file))
 
         const response = await extendFetch(url, {
@@ -153,14 +155,36 @@ export const resetCaseStatusAPI = async (caseID: string) => {
     }
 }
 
-// 啟動模型計算
-export const executeModelAPI = async (caseID: string, files: string[]) => {
+// 启动模型计算（计算后端只需 caseID，文件从中台下载）
+export const executeModelAPI = async (caseID: string) => {
     const url = '/api/v1/fvcom/execute'
     try {
         const response = await extendFetch(url, {
             method: 'POST',
             headers: new Headers({ 'Content-Type': 'application/json' }),
-            body: JSON.stringify({ caseID, files }),
+            body: JSON.stringify({ caseID }),
+        })
+        if (response.status !== 200) {
+            throw new Error(`HTTP ${response.status}`)
+        }
+        return await response.json()
+    } catch (error) {
+        return {
+            status: 'error',
+            data: null,
+            message: error instanceof Error ? error.message : '',
+        }
+    }
+}
+
+// 删除案例中的某个文件
+export const deleteFileAPI = async (caseID: string, key: string) => {
+    const url = '/api/v1/fvcom/delete-file'
+    try {
+        const response = await extendFetch(url, {
+            method: 'POST',
+            headers: new Headers({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ caseID, key }),
         })
         if (response.status !== 200) {
             throw new Error(`HTTP ${response.status}`)

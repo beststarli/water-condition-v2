@@ -36,5 +36,6 @@ env.*
 # Build
 dist
 
+.DS_Store
 package/data
 /generated/prisma

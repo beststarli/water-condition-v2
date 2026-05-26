@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { startApp } from './app/app'
 import { PORT } from './config/env'
 

@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: water-condition-rustfs
+    ports:
+      - "9000:9000"  # S3 API
+      - "9001:9001"  # Console UI (可選)
+    environment:
+      RUSTFS_ACCESS_KEY: rustfsadmin
+      RUSTFS_SECRET_KEY: rustfsadmin
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_ADDRESS: ":9000"
+    volumes:
+      - rustfs-data:/data
+    command: /data
+
+volumes:
+  rustfs-data:

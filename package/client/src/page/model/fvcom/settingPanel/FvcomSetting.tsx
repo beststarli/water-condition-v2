@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFvcomStore } from '@/store/FvcomStroe'
 import { Trash2, FileText, Loader2 } from 'lucide-react'
-import { createCaseActionAPI, uploadFilesAPI, executeModelAPI, getCaseDetailAPI } from '../../../../api/fvcom/fvcom.api'
+import { createCaseActionAPI, uploadFilesAPI, executeModelAPI, getCaseDetailAPI, deleteFileAPI } from '../../../../api/fvcom/fvcom.api'
 import CaseListPanel from './CaseListPanel'
 import CreateCaseModal from './CreateCaseModal'
 
@@ -20,7 +20,6 @@ export default function FvcomSetting() {
     const requestFitBounds = useFvcomStore((state) => state.requestFitBounds)
     const setIsSelectingBounds = useFvcomStore((state) => state.setIsSelectingBounds)
     const selectedCaseID = useFvcomStore((state) => state.selectedCaseID)
-    const selectedFilePaths = useFvcomStore((state) => state.selectedFilePaths)
     const setCurrentCase = useFvcomStore((state) => state.setCurrentCase)
     const triggerTaskRefresh = useFvcomStore((state) => state.triggerTaskRefresh)
     const addWatchedTaskId = useFvcomStore((state) => state.addWatchedTaskId)
@@ -50,16 +49,24 @@ export default function FvcomSetting() {
         return () => observer.disconnect()
     }, [])
 
-    // 當從「查看」按鈕選中案例時，同步文件列表
+    // 當選中案例時，從服務端加載最新的文件列表
     useEffect(() => {
-        if (!selectedCaseID) return
-        setFileList(
-            selectedFilePaths.map((p) => ({
-                path: p,
-                name: p.split(/[\\/]/).pop() || p,
-            })),
-        )
-    }, [selectedCaseID, selectedFilePaths])
+        if (!selectedCaseID) {
+            setFileList([])
+            return
+        }
+        getCaseDetailAPI(selectedCaseID).then((result) => {
+            if (result.status === 'success' && result.data) {
+                const paths = result.data.filePaths ?? []
+                setFileList(
+                    paths.map((p: string) => ({
+                        path: p,
+                        name: p.split('/').pop() || p,
+                    })),
+                )
+            }
+        })
+    }, [selectedCaseID])
 
     // 切換案例時，根據實際狀態更新執行按鈕
     useEffect(() => {
@@ -128,19 +135,19 @@ export default function FvcomSetting() {
 
     const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files
-        if (!files || files.length === 0) return
+        if (!files || files.length === 0 || !selectedCaseID) return
 
         setUploading(true)
         try {
-            const result = await uploadFilesAPI(Array.from(files))
+            const result = await uploadFilesAPI(Array.from(files), selectedCaseID)
             if (result.status === 'success' && result.data) {
-                setFileList((prev) => [
-                    ...prev,
-                    ...result.data!.map((p: string) => ({
+                // 用服务端返回的最新文件列表替换本地状态
+                setFileList(
+                    result.data.map((p: string) => ({
                         path: p,
-                        name: p.split(/[\\/]/).pop() || p,
+                        name: p.split('/').pop() || p,
                     })),
-                ])
+                )
             } else {
                 console.error('上传失败:', result.message)
             }
@@ -154,14 +161,27 @@ export default function FvcomSetting() {
         }
     }
 
-    const handleRemoveFile = (index: number) => {
-        setFileList((prev) => prev.filter((_, i) => i !== index))
+    const handleClearFiles = async () => {
+        if (!selectedCaseID || fileList.length === 0) return
+        const oldList = [...fileList]
+        setFileList([])
+        for (const file of oldList) {
+            await deleteFileAPI(selectedCaseID, file.path).catch(() => {})
+        }
     }
 
-    const handleClearFiles = () => {
-        setFileList([])
-        if (fileInputRef.current) {
-            fileInputRef.current.value = ''
+    const handleRemoveFile = async (index: number) => {
+        const file = fileList[index]
+        if (!file || !selectedCaseID) return
+
+        const result = await deleteFileAPI(selectedCaseID, file.path)
+        if (result.status === 'success' && result.data) {
+            setFileList(
+                result.data.map((p: string) => ({
+                    path: p,
+                    name: p.split('/').pop() || p,
+                })),
+            )
         }
     }
 
@@ -172,7 +192,7 @@ export default function FvcomSetting() {
         setCaseStatus('running')
 
         try {
-            const result = await executeModelAPI(caseID, fileList.map((f) => f.path))
+            const result = await executeModelAPI(caseID)
             if (result.status !== 'success') {
                 setCaseStatus('idle')
                 return

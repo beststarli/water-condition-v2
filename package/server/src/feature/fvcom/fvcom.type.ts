@@ -26,7 +26,6 @@ export const FvcomCaseActionReqSchema = Type.Object({
     caseBounds: Type.Optional(Type.Union([Type.Array(Type.Number()), Type.Null()])),
 })
 
-
 export const FvcomCaseActionResSchema = generateResponseSchema(CaseActionSchema)
 export type FvcomCaseActionResType = Static<typeof FvcomCaseActionResSchema>
 

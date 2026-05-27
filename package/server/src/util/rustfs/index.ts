@@ -4,6 +4,7 @@ import {
     DeleteObjectCommand,
     HeadBucketCommand,
     CreateBucketCommand,
+    ListObjectsV2Command,
 } from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
 import { RUSTFS } from '@/config/rustfs'
@@ -66,5 +67,23 @@ export const rustfs = {
 
     getUrl(key: string) {
         return `${RUSTFS.publicUrlBase}/${key}`
+    },
+
+    async listObjects(prefix: string) {
+        try {
+            const result = await client.send(
+                new ListObjectsV2Command({
+                    Bucket: RUSTFS.bucket,
+                    Prefix: prefix,
+                }),
+            )
+            return (result.Contents ?? []).map((obj) => ({
+                key: obj.Key!,
+                size: obj.Size ?? 0,
+                lastModified: obj.LastModified,
+            }))
+        } catch {
+            return []
+        }
     },
 }

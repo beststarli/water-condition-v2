@@ -199,9 +199,41 @@ export const deleteFileAPI = async (caseID: string, key: string) => {
     }
 }
 
-// 查詢單個案例詳情
+// 查询单个案例详情
 export const getCaseDetailAPI = async (caseID: string) => {
     const url = `/api/v1/fvcom/case/${caseID}`
+    try {
+        const response = await extendFetch(url, { method: 'GET' })
+        if (response.status !== 200) {
+            throw new Error(`HTTP ${response.status}`)
+        }
+        return await response.json()
+    } catch (error) {
+        return {
+            status: 'error',
+            data: null,
+            message: error instanceof Error ? error.message : '',
+        }
+    }
+}
+
+// 查询案例渲染纹理列表
+export type TextureInfo = {
+    key: string
+    name: string
+    url: string
+    publicUrl: string
+    size: number
+}
+
+export type TexturesResponse = {
+    caseID: string
+    bounds: [number, number, number, number]
+    textures: TextureInfo[]
+}
+
+export const getTexturesAPI = async (caseID: string) => {
+    const url = `/api/v1/fvcom/textures/${caseID}`
     try {
         const response = await extendFetch(url, { method: 'GET' })
         if (response.status !== 200) {

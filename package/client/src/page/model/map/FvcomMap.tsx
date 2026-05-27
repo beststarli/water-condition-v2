@@ -29,7 +29,7 @@ export default function FvcomMap() {
         mapRef.current = new mapboxgl.Map({
             container: mapContainerRef.current,
             style: 'mapbox://styles/mapbox/streets-v12',
-            center: [121.5, 38.9], // 渤海湾中心大致坐标
+            center: [118.96, 31.95], 
             zoom: 8,
         })
 

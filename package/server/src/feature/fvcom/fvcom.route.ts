@@ -40,7 +40,7 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
         }
     })
 
-    // 單個案例查詢
+    // 单个案例查询
     app.route({
         method: 'GET',
         url: '/case/:caseID',
@@ -120,13 +120,13 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
                 const filename = file.filename
                 const key = `fvcom/${caseID}/${filename}`
 
-                // 查詢 case 當前文件列表，判斷是否同名替換
+                // 查询 case 当前文件列表，判断是否同名替换
                 const record = await fvcomService.getCase(caseID)
                 const existingKeys = record?.filePaths ?? []
                 const oldKey = existingKeys.find((k) => k.endsWith(`/${filename}`))
 
                 if (oldKey) {
-                    // 刪除 RustFS 上的舊文件
+                    // 删除 RustFS 上的旧文件
                     await rustfs.delete(oldKey).catch(() => {})
                     replacedOldKeys.push(oldKey)
                 }
@@ -137,7 +137,7 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
 
             if (!caseID) throw new Error('caseID is required')
 
-            // 批量更新 DB：移除舊 key，添加新 key
+            // 批量更新 DB：移除旧 key，添加新 key
             await orm.fvcom.replaceCaseFiles(caseID, replacedOldKeys, newKeys)
 
             // 返回最新的文件列表
@@ -188,15 +188,48 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
         },
     })
 
+    // 查询案例渲染纹理列表 — 计算后端将纹理上传到 RustFS 后，中台从此接口获取
+    app.route({
+        method: 'GET',
+        url: '/textures/:caseID',
+        handler: async (req) => {
+            const { caseID } = req.params as { caseID: string }
+
+            const caseInfo = await fvcomService.getCase(caseID)
+            if (!caseInfo) {
+                return generateResponse('error', '案例不存在', null)
+            }
+
+            const prefix = `fvcom/${caseID}/textures/`
+            const objects = await rustfs.listObjects(prefix)
+
+            const textures = objects
+                .filter((obj) => obj.key !== prefix) // 排除目录本身
+                .map((obj) => ({
+                    key: obj.key,
+                    name: obj.key.split('/').pop() || obj.key,
+                    url: `/api/v1/fvcom/download?key=${encodeURIComponent(obj.key)}`,
+                    publicUrl: rustfs.getUrl(obj.key),
+                    size: obj.size,
+                }))
+
+            return generateResponse('success', '', {
+                caseID,
+                bounds: caseInfo.areaBounds,
+                textures,
+            })
+        },
+    })
+
     // =============================================
-    // 模型計算與 SSE 進度推送
-    // TODO: 以下 mock 需替換為對真實 FVCOM 計算後端的 HTTP 呼叫
-    //       計算後端通過中台的下載接口獲取輸入文件:
+    // 模型计算与 SSE 进度推送
+    // TODO: 以下 mock 需替换为对真实 FVCOM 计算后端的 HTTP 调用
+    //       计算后端通过中台的下载接口获取输入文件:
     //       GET http://<中台地址>/api/v1/fvcom/download?key=<fileKey>
     // =============================================
 
-    // Mock — 模擬計算後端進度更新
-    // TODO: 刪除此函數，改為呼叫計算後端的真實 API
+    // Mock — 模拟计算后端进度更新
+    // TODO: 删除此函数，改为调用计算后端的真实 API
     const mockIntervals = new Map<string, NodeJS.Timeout>()
     const startMockComputation = (caseID: string) => {
         let step = 0
@@ -206,10 +239,10 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
 
             const messages = [
                 '模型初始化中...',
-                '網格生成中...',
-                '邊界條件計算中...',
+                '网格生成中...',
+                '边界条件计算中...',
                 'FVCOM 核心求解中...',
-                '結果後處理中...',
+                '结果后处理中...',
             ]
             const msgIdx = Math.min(Math.floor(step / 4), messages.length - 1)
 
@@ -220,7 +253,7 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
                 mockIntervals.delete(caseID)
             }
 
-            // 同步更新 DB 中的進度與狀態
+            // 同步更新 DB 中的进度与状态
             fvcomService.updateCaseProgress(caseID, progress, status)
 
             if (progress >= 1) {
@@ -238,7 +271,7 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
         }
     }
 
-    // 啟動模型計算 — 计算后端只需 caseID，文件从中台下载
+    // 启动模型计算 — 计算后端只需 caseID，文件从中台下载
     app.route({
         method: 'POST',
         url: '/execute',
@@ -248,10 +281,10 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
                 return generateResponse('error', 'caseID is required', null)
             }
 
-            // 更新狀態
+            // 更新状态
             await fvcomService.updateCaseProgress(caseID, 0, 'running')
 
-            // TODO: 呼叫計算後端啟動模型:
+            // TODO: 调用计算后端启动模型:
             //   POST http://<computation-backend>/api/v1/model/start
             //   Body: { caseID }
             //   计算后端通过以下接口从中台获取数据:
@@ -260,11 +293,11 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
             //   baseUrl 由部署环境配置（开发: http://localhost:3456/api/v1/fvcom）
             startMockComputation(caseID)
 
-            return generateResponse('success', '模型計算已啟動', { caseID })
+            return generateResponse('success', '模型计算已启动', { caseID })
         },
     })
 
-    // SSE — 即時推送計算進度
+    // SSE — 即时推送计算进度
     app.route({
         method: 'GET',
         url: '/progress/:caseID',
@@ -278,14 +311,14 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
             })
 
             const pollInterval = setInterval(async () => {
-                // TODO: 替換為真正的 HTTP 請求:
+                // TODO: 替换为真正的 HTTP 请求:
                 //   GET http://<computation-backend>/api/v1/model/progress?caseID=${caseID}
                 //   计算后端通过 GET /api/v1/fvcom/download?key=<fileKey> 下载输入文件
                 const task = await fvcomService.getCase(caseID)
 
                 if (!task) {
                     reply.raw.write(
-                        `data: ${JSON.stringify({ progress: 0, status: 'running', message: '等待計算啟動...' })}\n\n`,
+                        `data: ${JSON.stringify({ progress: 0, status: 'running', message: '等待计算启动...' })}\n\n`,
                     )
                     return
                 }
@@ -296,10 +329,10 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
                         status: task.status,
                         message:
                             task.status === 'completed'
-                                ? '模型計算完成'
+                                ? '模型计算完成'
                                 : task.status === 'error'
-                                  ? '計算過程發生錯誤'
-                                  : `計算中 ${Math.round(task.progress * 100)}%`,
+                                  ? '计算过程发生错误'
+                                  : `计算中 ${Math.round(task.progress * 100)}%`,
                     })}\n\n`,
                 )
 
@@ -315,7 +348,7 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
         },
     })
 
-    // SSE — 任務面板統一推送所有活躍案例狀態（事件驅動，無輪詢）
+    // SSE — 任务面板统一推送所有活跃案例状态（事件驱动，无轮询）
     app.route({
         method: 'GET',
         url: '/progress/tasks',
@@ -326,7 +359,7 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
                 'Connection': 'keep-alive',
             })
 
-            // 立即推送當前狀態
+            // 立即推送当前状态
             const sendActiveCases = async () => {
                 const cases = await fvcomService.getAllCases()
                 const activeCases = cases.filter(
@@ -336,7 +369,7 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
             }
             await sendActiveCases()
 
-            // 後續僅在狀態變更時推送
+            // 后续仅在状态变更时推送
             const onProgress = () => sendActiveCases()
             fvcomEventBus.on(FvcomEvent.CASE_PROGRESS, onProgress)
 

@@ -20,7 +20,7 @@ interface FvcomStoreProps {
     requestFitBounds: (bounds: FvcomStoreProps['areaBounds']) => void
     setIsSelectingBounds: (value: boolean) => void
 
-    // 當前選中的案例
+    // 当前选中的案例
     selectedCaseID: string | null
     selectedCaseName: string | null
     selectedFilePaths: string[]
@@ -28,16 +28,16 @@ interface FvcomStoreProps {
     setCurrentCase: (caseID: string, caseName: string, filePaths: string[], caseBounds: [number, number, number, number]) => void
     clearCurrentCase: () => void
 
-    // 任務面板刷新信號
+    // 任务面板刷新信号
     taskRefreshTrigger: number
     triggerTaskRefresh: () => void
 
-    // 任務面板關注列表（僅顯示由當前頁面發起的任務）
+    // 任务面板关注列表（仅显示由当前页面发起的任务）
     watchedTaskIds: string[]
     addWatchedTaskId: (id: string) => void
     removeWatchedTaskId: (id: string) => void
 
-    // 執行按鈕狀態刷新信號（取消任務時觸發）
+    // 执行按钮状态刷新信号（取消任务时触发）
     executingRefreshTrigger: number
     triggerExecutingRefresh: () => void
 }
@@ -72,7 +72,7 @@ export const useFvcomStore = create<FvcomStoreProps>((set) => ({
         })),
     setIsSelectingBounds: (value) => set({ isSelectingBounds: value }),
 
-    // 當前選中的案例
+    // 当前选中的案例
     selectedCaseID: null,
     selectedCaseName: null,
     selectedFilePaths: [],

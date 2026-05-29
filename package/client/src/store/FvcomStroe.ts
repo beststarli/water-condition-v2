@@ -1,5 +1,24 @@
 import { create } from 'zustand'
 
+export type TextureLayerType = {
+    key: string
+    name: string
+    url: string
+    publicUrl: string
+    size: number
+}
+
+export interface FvcomTextureState {
+    textures: TextureLayerType[]
+    bounds: [number, number, number, number] | null
+    flowVisible: boolean
+    meshVisible: boolean
+    setTextures: (textures: TextureLayerType[], bounds: [number, number, number, number]) => void
+    clearTextures: () => void
+    setFlowVisible: (v: boolean) => void
+    setMeshVisible: (v: boolean) => void
+}
+
 interface FvcomStoreProps {
     projectName: string | null
     isCreateModalOpen: boolean
@@ -40,6 +59,28 @@ interface FvcomStoreProps {
     // 执行按钮状态刷新信号（取消任务时触发）
     executingRefreshTrigger: number
     triggerExecutingRefresh: () => void
+
+    // 纹理图层
+    texture: FvcomTextureState
+
+    // 纹理刷新信号（计算完成后重新加载纹理）
+    textureRefreshTrigger: number
+    triggerTextureRefresh: () => void
+
+    // 本地测试纹理模式
+    testTextureEnabled: boolean
+    setTestTextureEnabled: (v: boolean) => void
+}
+
+const initialTextureState: FvcomTextureState = {
+    textures: [],
+    bounds: null,
+    flowVisible: true,
+    meshVisible: true,
+    setTextures: () => {},
+    clearTextures: () => {},
+    setFlowVisible: () => {},
+    setMeshVisible: () => {},
 }
 
 export const useFvcomStore = create<FvcomStoreProps>((set) => ({
@@ -109,4 +150,20 @@ export const useFvcomStore = create<FvcomStoreProps>((set) => ({
     executingRefreshTrigger: 0,
     triggerExecutingRefresh: () =>
         set((state) => ({ executingRefreshTrigger: state.executingRefreshTrigger + 1 })),
+
+    // 纹理图层
+    texture: {
+        ...initialTextureState,
+        setTextures: (textures, bounds) => set((state) => ({ texture: { ...state.texture, textures, bounds } })),
+        clearTextures: () => set((state) => ({ texture: { ...state.texture, textures: [], bounds: null } })),
+        setFlowVisible: (flowVisible) => set((state) => ({ texture: { ...state.texture, flowVisible } })),
+        setMeshVisible: (meshVisible) => set((state) => ({ texture: { ...state.texture, meshVisible } })),
+    },
+
+    textureRefreshTrigger: 0,
+    triggerTextureRefresh: () =>
+        set((state) => ({ textureRefreshTrigger: state.textureRefreshTrigger + 1 })),
+
+    testTextureEnabled: false,
+    setTestTextureEnabled: (testTextureEnabled) => set({ testTextureEnabled }),
 }))

@@ -53,6 +53,7 @@ export default function TaskPanel({ isOpen, onToggle }: TaskPanelProps) {
                 )
                 if (hasCompletion) {
                     useFvcomStore.getState().triggerExecutingRefresh()
+                    useFvcomStore.getState().triggerTextureRefresh()
                 }
 
                 // 自動追蹤尚未關注的 running 任務（瀏覽器刷新後恢復）

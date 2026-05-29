@@ -38,7 +38,6 @@ export default function CaseListPanel({ isOpen, onClose }: CaseListPanelProps) {
         setIsLoading(true)
         setErrorMessage('')
         const result = await getCaseListAPI()
-        console.log('getCaseListAPI result', result.data)
 
         if (result.status !== 'success' || !result.data) {
             setErrorMessage(result.message || '加载失败')
@@ -62,11 +61,12 @@ export default function CaseListPanel({ isOpen, onClose }: CaseListPanelProps) {
             setErrorMessage(result.message || '删除失败')
             return
         }
-        // 如果刪除了運行中的案例，通知任務面板刷新
+
         const deletedCase = cases.find((c) => c.caseID === caseID)
         if (deletedCase?.status === 'running') {
             useFvcomStore.getState().triggerTaskRefresh()
         }
+        
         await loadCases()
     }
 
@@ -105,28 +105,26 @@ export default function CaseListPanel({ isOpen, onClose }: CaseListPanelProps) {
                                             <span className='text-xl'>{item.caseName}</span>
                                             <span className='text-sm font-normal'>
                                                 <span
-                                                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                                                        item.status === 'idle'
+                                                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${item.status === 'idle'
                                                             ? 'bg-slate-100 text-slate-500'
                                                             : item.status === 'running'
-                                                              ? 'bg-orange-50 text-orange-600'
-                                                              : 'bg-emerald-50 text-emerald-600'
-                                                    }`}
+                                                                ? 'bg-orange-50 text-orange-600'
+                                                                : 'bg-emerald-50 text-emerald-600'
+                                                        }`}
                                                 >
                                                     <span
-                                                        className={`h-1.5 w-1.5 rounded-full ${
-                                                            item.status === 'idle'
+                                                        className={`h-1.5 w-1.5 rounded-full ${item.status === 'idle'
                                                                 ? 'bg-slate-400'
                                                                 : item.status === 'running'
-                                                                  ? 'bg-orange-400'
-                                                                  : 'bg-emerald-500'
-                                                        }`}
+                                                                    ? 'bg-orange-400'
+                                                                    : 'bg-emerald-500'
+                                                            }`}
                                                     />
                                                     {item.status === 'idle'
                                                         ? '未启动'
                                                         : item.status === 'running'
-                                                          ? '运行中'
-                                                          : '已完成'}
+                                                            ? '运行中'
+                                                            : '已完成'}
                                                 </span>
                                             </span>
                                         </CardTitle>

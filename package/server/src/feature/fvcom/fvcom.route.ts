@@ -12,6 +12,7 @@ import { fvcomEventBus, FvcomEvent } from './fvcom.event'
 import { generateResponse } from '@/util/typebox'
 import { rustfs } from '@/util/rustfs'
 import { orm } from '@/dao'
+import { PUBLIC_URL, COMPUTATION_BACKEND_URL } from '@/config/env'
 
 export const fvcomRoute = async (app: FastifyTypebox) => {
     // fvcom测试用接口
@@ -118,7 +119,7 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
                 }
 
                 const filename = file.filename
-                const key = `fvcom/${caseID}/${filename}`
+                const key = `data/water-condition/fvcom/${caseID}/input/${filename}`
 
                 // 查询 case 当前文件列表，判断是否同名替换
                 const record = await fvcomService.getCase(caseID)
@@ -200,7 +201,7 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
                 return generateResponse('error', '案例不存在', null)
             }
 
-            const prefix = `fvcom/${caseID}/textures/`
+            const prefix = `data/water-condition/fvcom/${caseID}/output/`
             const objects = await rustfs.listObjects(prefix)
 
             const textures = objects
@@ -271,27 +272,55 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
         }
     }
 
-    // 启动模型计算 — 计算后端只需 caseID，文件从中台下载
+    // 启动模型计算 — 将 RustFS 文件路径告知计算后端，由后端自行下载
     app.route({
         method: 'POST',
         url: '/execute',
-        handler: async (req) => {
+        handler: async (req, reply) => {
             const { caseID } = req.body as { caseID: string }
             if (!caseID) {
                 return generateResponse('error', 'caseID is required', null)
             }
 
+            const caseInfo = await fvcomService.getCase(caseID)
+            if (!caseInfo) {
+                return generateResponse('error', '案例不存在', null)
+            }
+
             // 更新状态
             await fvcomService.updateCaseProgress(caseID, 0, 'running')
 
-            // TODO: 调用计算后端启动模型:
-            //   POST http://<computation-backend>/api/v1/model/start
-            //   Body: { caseID }
-            //   计算后端通过以下接口从中台获取数据:
-            //   1. GET {baseUrl}/case/{caseID}      — 获取案例信息及 fileKeys
-            //   2. GET {baseUrl}/download?key={key}  — 下载具体文件
-            //   baseUrl 由部署环境配置（开发: http://localhost:3456/api/v1/fvcom）
-            startMockComputation(caseID)
+            // 构建发送给计算后端的配置
+            const config = {
+                casename: caseInfo.caseName,
+                caseid: caseID,
+                input_path: `data/water-condition/fvcom/${caseID}/input/`,
+                simulator_output_path: `data/water-condition/fvcom/${caseID}/simulator/`,
+                builder_output_path: `data/water-condition/fvcom/${caseID}/output/`,
+                source_epsg: 4326,
+                extensions: ['flowfield_texturebuilder'],
+            }
+
+            console.log('===== 发送给计算后端的配置 =====')
+            console.log(JSON.stringify(config, null, 4))
+            console.log('===============================')
+
+            // 调用计算后端
+            try {
+                const response = await fetch(`http://192.168.31.185:8080/api/cases/${caseInfo.caseName}/simulation/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config),
+                })
+
+                console.log(JSON.stringify(config))
+                if (!response.ok) {
+                    throw new Error(`computation backend returned ${response.status}`)
+                }
+            } catch (err) {
+                await fvcomService.updateCaseProgress(caseID, 0, 'error')
+                return generateResponse('error', `调用计算后端失败: ${err instanceof Error ? err.message : err}`, null)
+            }
 
             return generateResponse('success', '模型计算已启动', { caseID })
         },

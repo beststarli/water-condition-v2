@@ -29,7 +29,7 @@ export default function FvcomSetting() {
     const [isCaseListOpen, setIsCaseListOpen] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
-    // 案例執行狀態：idle | running | completed | error
+    // 案例执行状态：idle | running | completed | error
     const [caseStatus, setCaseStatus] = useState<'idle' | 'running' | 'completed' | 'error'>('idle')
 
     // 虚拟列表
@@ -218,7 +218,7 @@ export default function FvcomSetting() {
             : '执行模型计算'
 
     return (
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 max-h-[43vh] overflow-hidden">
             <div className="flex h-full flex-col border border-slate-300 bg-white">
                 <div className="border-b border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
                     案例配置面板
@@ -269,7 +269,7 @@ export default function FvcomSetting() {
                         onChange={handleFilesSelected}
                     />
                     {/* 檔案列表 */}
-                    <div className="flex-1 min-h-0">
+                    <div className="flex-1 min-h-0 overflow-hidden">
                         {uploading && (
                             <div className="flex items-center justify-center py-4 text-sm text-slate-500">
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

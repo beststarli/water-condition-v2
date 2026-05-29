@@ -7,6 +7,9 @@ import 'mapbox-gl-draw/dist/mapbox-gl-draw.css'
 // @ts-expect-error no declare file for rectangle mode
 import DrawRectangle from 'mapbox-gl-draw-rectangle-mode'
 import { useFvcomStore } from '@/store/FvcomStroe'
+import { getTexturesAPI } from '@/api/fvcom/fvcom.api'
+import { FvcomFlowManager, FvcomTextureSet } from '@/util/customLayer/fvcomFlowManager'
+import { FvcomFlowLayer } from '@/util/customLayer/fvcomFlowLayer'
 import MiniMap from './MiniMap'
 
 const drawStyles = [
@@ -41,10 +44,37 @@ export default function FvcomMap() {
     const setAreaBounds = useFvcomStore((state) => state.setAreaBounds)
     const setIsCreateModalOpen = useFvcomStore((state) => state.setIsCreateModalOpen)
     const drawRef = useRef<MapboxDraw | null>(null)
+    const flowLayerRef = useRef<FvcomFlowLayer | null>(null)
+    const flowManagerRef = useRef<FvcomFlowManager | null>(null)
+    const testLayerRef = useRef<FvcomFlowLayer | null>(null)
+    const testManagerRef = useRef<FvcomFlowManager | null>(null)
+    const selectedCaseID = useFvcomStore((state) => state.selectedCaseID)
+    const textureRefreshTrigger = useFvcomStore((state) => state.textureRefreshTrigger)
+    const texture = useFvcomStore((state) => state.texture)
+    const testTextureEnabled = useFvcomStore((state) => state.testTextureEnabled)
     const [zoom, setZoom] = useState(8)
 
     useEffect(() => {
         if (mapRef.current || !mapContainerRef.current) return
+
+        // 强制使用 WebGL2（自定义图层需要 texStorage2D / transform feedback）
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        const MapProto = mapboxgl.Map.prototype as any
+        if (MapProto._setupPainter.toString().indexOf('webgl2') === -1) {
+            const _setupPainter_old = MapProto._setupPainter
+            MapProto._setupPainter = function () {
+                const getContext_old = this._canvas.getContext
+                this._canvas.getContext = function (_name: any, options: any): any {
+                    return (
+                        getContext_old.apply(this, ['webgl2', options]) ||
+                        getContext_old.apply(this, ['webgl', options]) ||
+                        getContext_old.apply(this, ['experimental-webgl', options])
+                    )
+                }
+                _setupPainter_old.apply(this)
+                this._canvas.getContext = getContext_old
+            }
+        }
 
         mapRef.current = new mapboxgl.Map({
             container: mapContainerRef.current,
@@ -158,6 +188,167 @@ export default function FvcomMap() {
         setIsCreateModalOpen,
         setIsSelectingBounds,
     ])
+
+    // 加载纹理并创建自定义渲染图层
+    useEffect(() => {
+        const map = mapRef.current
+        if (!map || !selectedCaseID) return
+
+        let cancelled = false
+
+        // 清除旧的自定义图层
+        if (flowLayerRef.current) {
+            try { map.removeLayer(flowLayerRef.current.id) } catch {}
+            flowLayerRef.current = null
+        }
+        if (flowManagerRef.current) {
+            flowManagerRef.current.destroy()
+            flowManagerRef.current = null
+        }
+        texture.clearTextures()
+
+        // 加载纹理列表
+        getTexturesAPI(selectedCaseID).then((res) => {
+            if (cancelled || res.status !== 'success' || !res.data) return
+
+            const data = res.data as {
+                caseID: string
+                bounds: [number, number, number, number]
+                textures: Array<{ key: string; name: string; url: string; publicUrl: string; size: number }>
+            }
+
+            // 保存纹理列表到 store（供 FvcomLayer 控制面板使用）
+            texture.setTextures(data.textures, data.bounds)
+
+            // 按文件名匹配纹理类型
+            const texList = data.textures
+            const findByName = (patterns: RegExp[]) =>
+                texList.find((t) => patterns.some((p) => p.test(t.name)))
+
+            const uvTex = findByName([/^uvdp/i, /^uv_/i, /^uv/i])
+            const meshTex = findByName([/^mesh/i, /^projection_/i, /^proj/i])
+            const seedTex = findByName([/^texture/i, /^seed_/i, /^seed/i, /^valid/i])
+
+            if (!uvTex || !meshTex) return
+
+            // 定位 uvdp1 / uvdp2
+            const uv1 = uvTex
+            const uv2 = texList.find((t) => {
+                const m = t.name.match(/(\d+)/)
+                return m && m[1] === '2' && /^uv/i.test(t.name)
+            })
+            const mesh1 = meshTex
+            const mesh2 = texList.find((t) => {
+                const m = t.name.match(/(\d+)/)
+                return m && m[1] === '2' && /^mesh/i.test(t.name)
+            })
+
+            const textureSet: FvcomTextureSet = {
+                uvTexture1: uv1.publicUrl,
+                uvTexture2: uv2?.publicUrl,
+                meshTexture1: mesh1.publicUrl,
+                meshTexture2: mesh2?.publicUrl,
+                seedTexture: seedTex?.publicUrl,
+                bounds: data.bounds,
+            }
+
+            const flowManager = new FvcomFlowManager(textureSet)
+            const flowLayer = new FvcomFlowLayer(`fvcom-flow-${selectedCaseID}`, '2d', flowManager)
+
+            flowManagerRef.current = flowManager
+            flowLayerRef.current = flowLayer
+            map.addLayer(flowLayer)
+        })
+
+        return () => {
+            cancelled = true
+            if (flowLayerRef.current) {
+                try { map.removeLayer(flowLayerRef.current.id) } catch {}
+                flowLayerRef.current = null
+            }
+            if (flowManagerRef.current) {
+                flowManagerRef.current.destroy()
+                flowManagerRef.current = null
+            }
+        }
+    }, [selectedCaseID, textureRefreshTrigger])
+
+    // 流场动画显隐控制
+    useEffect(() => {
+        if (flowLayerRef.current) {
+            flowLayerRef.current.visible = texture.flowVisible
+        }
+    }, [texture.flowVisible])
+
+    // 网格纹理显隐控制
+    useEffect(() => {
+        if (flowLayerRef.current) {
+            flowLayerRef.current.meshVisible = texture.meshVisible
+        }
+    }, [texture.meshVisible])
+
+    // 本地测试纹理模式
+    useEffect(() => {
+        const map = mapRef.current
+        if (!map) return
+
+        const TEST_LAYER_ID = 'fvcom-flow-test'
+
+        if (!testTextureEnabled) {
+            if (testLayerRef.current) {
+                try { map.removeLayer(TEST_LAYER_ID) } catch {}
+                testLayerRef.current = null
+            }
+            if (testManagerRef.current) {
+                testManagerRef.current.destroy()
+                testManagerRef.current = null
+            }
+            return
+        }
+
+        // 如果已经有测试图层，先移除
+        if (testLayerRef.current) {
+            try { map.removeLayer(TEST_LAYER_ID) } catch {}
+            testLayerRef.current = null
+        }
+        if (testManagerRef.current) {
+            testManagerRef.current.destroy()
+            testManagerRef.current = null
+        }
+
+        // 使用地图中心附近的默认范围
+        const center = map.getCenter()
+        const size = 1.5
+        const bounds: [number, number, number, number] = [
+            center.lng - size, center.lat - size,
+            center.lng + size, center.lat + size,
+        ]
+
+        const textureSet: FvcomTextureSet = {
+            uvTexture1: '/textures/test/uvdp1.png',
+            uvTexture2: '/textures/test/uvdp2.png',
+            meshTexture1: '/textures/test/mesh1.png',
+            meshTexture2: '/textures/test/mesh2.png',
+            seedTexture: '/textures/test/texture.png',
+            bounds,
+        }
+
+        const manager = new FvcomFlowManager(textureSet)
+        const layer = new FvcomFlowLayer(TEST_LAYER_ID, '2d', manager)
+
+        testManagerRef.current = manager
+        testLayerRef.current = layer
+        map.addLayer(layer)
+
+        return () => {
+            try { map.removeLayer(TEST_LAYER_ID) } catch {}
+            testLayerRef.current = null
+            if (testManagerRef.current) {
+                testManagerRef.current.destroy()
+                testManagerRef.current = null
+            }
+        }
+    }, [testTextureEnabled])
 
     return (
         <div className="relative h-full w-full">

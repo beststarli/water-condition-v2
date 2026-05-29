@@ -33,7 +33,7 @@ export default function FvcomPage() {
                         </div>
                     </div>
                     {/* 模型设置和图层控制 */}
-                    <div className="flex flex-1 flex-col gap-1 min-h-0">
+                    <div className="flex flex-1 flex-col gap-1">
                         <FvcomSetting />
                         <FvcomLayer />
                     </div>

@@ -63,7 +63,7 @@ export const startApp = async (port: number) => {
     initializeRoutes(app)
 
     try {
-        await app.listen({ port })
+        await app.listen({ port, host: '0.0.0.0' })
         console.log(process.cwd(), port, DATA_FOLDER_PATH, process.env.NODE_ENV)
     } catch (err) {
         app.log.error(err)

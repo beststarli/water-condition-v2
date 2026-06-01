@@ -8,8 +8,7 @@ import 'mapbox-gl-draw/dist/mapbox-gl-draw.css'
 import DrawRectangle from 'mapbox-gl-draw-rectangle-mode'
 import { useFvcomStore } from '@/store/FvcomStroe'
 import { getTexturesAPI } from '@/api/fvcom/fvcom.api'
-import { FvcomFlowManager, FvcomTextureSet } from '@/util/customLayer/fvcomFlowManager'
-import { FvcomFlowLayer } from '@/util/customLayer/fvcomFlowLayer'
+import { FvcomFlowLayerDirect, FvcomFlowManagerDirect, FvcomTextureSet } from '@/util/customLayer/fvcomFlowDirect'
 import MiniMap from './MiniMap'
 
 const drawStyles = [
@@ -44,10 +43,10 @@ export default function FvcomMap() {
     const setAreaBounds = useFvcomStore((state) => state.setAreaBounds)
     const setIsCreateModalOpen = useFvcomStore((state) => state.setIsCreateModalOpen)
     const drawRef = useRef<MapboxDraw | null>(null)
-    const flowLayerRef = useRef<FvcomFlowLayer | null>(null)
-    const flowManagerRef = useRef<FvcomFlowManager | null>(null)
-    const testLayerRef = useRef<FvcomFlowLayer | null>(null)
-    const testManagerRef = useRef<FvcomFlowManager | null>(null)
+    const flowLayerRef = useRef<FvcomFlowLayerDirect | null>(null)
+    const flowManagerRef = useRef<FvcomFlowManagerDirect | null>(null)
+    const testLayerRef = useRef<FvcomFlowLayerDirect | null>(null)
+    const testManagerRef = useRef<FvcomFlowManagerDirect | null>(null)
     const selectedCaseID = useFvcomStore((state) => state.selectedCaseID)
     const textureRefreshTrigger = useFvcomStore((state) => state.textureRefreshTrigger)
     const texture = useFvcomStore((state) => state.texture)
@@ -79,7 +78,7 @@ export default function FvcomMap() {
         mapRef.current = new mapboxgl.Map({
             container: mapContainerRef.current,
             style: 'mapbox://styles/mapbox/streets-v12',
-            center: [118.96, 31.95], 
+            center: [118.96, 31.95],
             zoom: 8,
         })
 
@@ -198,7 +197,7 @@ export default function FvcomMap() {
 
         // 清除旧的自定义图层
         if (flowLayerRef.current) {
-            try { map.removeLayer(flowLayerRef.current.id) } catch {}
+            try { map.removeLayer(flowLayerRef.current.id) } catch { }
             flowLayerRef.current = null
         }
         if (flowManagerRef.current) {
@@ -208,7 +207,7 @@ export default function FvcomMap() {
         texture.clearTextures()
 
         // 加载纹理列表
-        getTexturesAPI(selectedCaseID).then((res) => {
+        getTexturesAPI(selectedCaseID).then(async (res) => {
             if (cancelled || res.status !== 'success' || !res.data) return
 
             const data = res.data as {
@@ -252,8 +251,15 @@ export default function FvcomMap() {
                 bounds: data.bounds,
             }
 
-            const flowManager = new FvcomFlowManager(textureSet)
-            const flowLayer = new FvcomFlowLayer(`fvcom-flow-${selectedCaseID}`, '2d', flowManager)
+            const flowManager = await FvcomFlowManagerDirect.Create(textureSet)
+            if (cancelled) {
+                flowManager.destroy()
+                return
+            }
+
+            const flowLayer = new FvcomFlowLayerDirect(`fvcom-flow-${selectedCaseID}`, '2d', flowManager)
+            flowLayer.visible = texture.flowVisible
+            flowLayer.meshVisible = texture.meshVisible
 
             flowManagerRef.current = flowManager
             flowLayerRef.current = flowLayer
@@ -263,7 +269,7 @@ export default function FvcomMap() {
         return () => {
             cancelled = true
             if (flowLayerRef.current) {
-                try { map.removeLayer(flowLayerRef.current.id) } catch {}
+                try { map.removeLayer(flowLayerRef.current.id) } catch { }
                 flowLayerRef.current = null
             }
             if (flowManagerRef.current) {
@@ -296,7 +302,7 @@ export default function FvcomMap() {
 
         if (!testTextureEnabled) {
             if (testLayerRef.current) {
-                try { map.removeLayer(TEST_LAYER_ID) } catch {}
+                try { map.removeLayer(TEST_LAYER_ID) } catch { }
                 testLayerRef.current = null
             }
             if (testManagerRef.current) {
@@ -308,7 +314,7 @@ export default function FvcomMap() {
 
         // 如果已经有测试图层，先移除
         if (testLayerRef.current) {
-            try { map.removeLayer(TEST_LAYER_ID) } catch {}
+            try { map.removeLayer(TEST_LAYER_ID) } catch { }
             testLayerRef.current = null
         }
         if (testManagerRef.current) {
@@ -325,23 +331,33 @@ export default function FvcomMap() {
         ]
 
         const textureSet: FvcomTextureSet = {
-            uvTexture1: '/textures/test/uvdp1.png',
-            uvTexture2: '/textures/test/uvdp2.png',
-            meshTexture1: '/textures/test/mesh1.png',
-            meshTexture2: '/textures/test/mesh2.png',
-            seedTexture: '/textures/test/texture.png',
+            uvTexture1: '/textures/test/uv_0001.png',
+            uvTexture2: '/textures/test/uv_0002.png',
+            meshTexture1: '/textures/test/projection_mapbox.png',
+            seedTexture: '/textures/test/seed_0001.png',
             bounds,
         }
 
-        const manager = new FvcomFlowManager(textureSet)
-        const layer = new FvcomFlowLayer(TEST_LAYER_ID, '2d', manager)
+        let cancelled = false
 
-        testManagerRef.current = manager
-        testLayerRef.current = layer
-        map.addLayer(layer)
+        FvcomFlowManagerDirect.Create(textureSet).then((manager) => {
+            if (cancelled) {
+                manager.destroy()
+                return
+            }
+
+            const layer = new FvcomFlowLayerDirect(TEST_LAYER_ID, '2d', manager)
+            layer.visible = texture.flowVisible
+            layer.meshVisible = texture.meshVisible
+
+            testManagerRef.current = manager
+            testLayerRef.current = layer
+            map.addLayer(layer)
+        })
 
         return () => {
-            try { map.removeLayer(TEST_LAYER_ID) } catch {}
+            cancelled = true
+            try { map.removeLayer(TEST_LAYER_ID) } catch { }
             testLayerRef.current = null
             if (testManagerRef.current) {
                 testManagerRef.current.destroy()

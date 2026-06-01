@@ -6,13 +6,22 @@ import {
     FvcomCaseListResSchema,
     FvcomCaseListResType,
 } from './fvcom.type'
-import { randomUUID } from 'crypto'
 import { fvcomService } from './fvcom.service'
 import { fvcomEventBus, FvcomEvent } from './fvcom.event'
 import { generateResponse } from '@/util/typebox'
 import { rustfs } from '@/util/rustfs'
 import { orm } from '@/dao'
 import { PUBLIC_URL, COMPUTATION_BACKEND_URL } from '@/config/env'
+
+/** 生成 8 位随机数字 ID，与已有案例碰撞时重试 */
+async function generateCaseID(): Promise<string> {
+    for (let attempt = 0; attempt < 10; attempt++) {
+        const id = String(Math.floor(10000000 + Math.random() * 90000000))
+        const existing = await fvcomService.getCase(id)
+        if (!existing) return id
+    }
+    throw new Error('无法生成唯一的案例 ID')
+}
 
 export const fvcomRoute = async (app: FastifyTypebox) => {
     // fvcom测试用接口
@@ -68,11 +77,12 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
             const { action, caseID, caseName, caseBounds } = req.body
             const actionFunctionsMap = {
                 create: async () => {
-                    const newCaseID = randomUUID()
                     if (!caseName) {
                         throw Error('创建的案例名称为空')
                     }
 
+                    // 生成 8 位随机数字 ID，碰撞时重试
+                    const newCaseID = await generateCaseID()
                     await fvcomService.createCase(
                         newCaseID,
                         caseName,
@@ -119,7 +129,7 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
                 }
 
                 const filename = file.filename
-                const key = `data/water-condition/fvcom/${caseID}/input/${filename}`
+                const key = `fvcom/${caseID}/input/${filename}`
 
                 // 查询 case 当前文件列表，判断是否同名替换
                 const record = await fvcomService.getCase(caseID)
@@ -201,7 +211,7 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
                 return generateResponse('error', '案例不存在', null)
             }
 
-            const prefix = `data/water-condition/fvcom/${caseID}/output/`
+            const prefix = `fvcom/${caseID}/output/`
             const objects = await rustfs.listObjects(prefix)
 
             const textures = objects
@@ -292,13 +302,13 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
 
             // 构建发送给计算后端的配置
             const config = {
-                casename: caseInfo.caseName,
                 caseid: caseID,
-                input_path: `data/water-condition/fvcom/${caseID}/input/`,
-                simulator_output_path: `data/water-condition/fvcom/${caseID}/simulator/`,
-                builder_output_path: `data/water-condition/fvcom/${caseID}/output/`,
-                source_epsg: 4326,
+                casename: 'yanzheng',
+                input_path: `/fvcom/${caseID}/input`,
+                simulator_output_path: `/fvcom/${caseID}/simulator`,
+                builder_output_path: `/fvcom/${caseID}/output`,
                 extensions: ['flowfield_texturebuilder'],
+                source_epsg: 4326,
             }
 
             console.log('===== 发送给计算后端的配置 =====')
@@ -306,8 +316,9 @@ export const fvcomRoute = async (app: FastifyTypebox) => {
             console.log('===============================')
 
             // 调用计算后端
+            // TODO：从env获取url
             try {
-                const response = await fetch(`http://192.168.31.185:8080/api/cases/${caseInfo.caseName}/simulation/start`, {
+                const response = await fetch(`http://192.168.31.185:8000/api/cases/simulation/start`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(config),

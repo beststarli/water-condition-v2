@@ -325,11 +325,10 @@ export default function FvcomMap() {
         ]
 
         const textureSet: FvcomTextureSet = {
-            uvTexture1: '/textures/test/uvdp1.png',
-            uvTexture2: '/textures/test/uvdp2.png',
-            meshTexture1: '/textures/test/mesh1.png',
-            meshTexture2: '/textures/test/mesh2.png',
-            seedTexture: '/textures/test/texture.png',
+            uvTexture1: '/textures/test/uv_0001.png',
+            uvTexture2: '/textures/test/uv_0002.png',
+            meshTexture1: '/textures/test/projection_mapbox.png',
+            seedTexture: '/textures/test/seed_0001.png',
             bounds,
         }
 

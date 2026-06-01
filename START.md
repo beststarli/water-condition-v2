@@ -10,6 +10,9 @@ pnpm i
 
 ```bash
 pnpm dlx prisma init
+
+在schema.prisma中配置数据库连接字符串
+
 pnpm prisma db pull
 pnpm prisma generate
 ```

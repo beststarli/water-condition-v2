@@ -85,7 +85,7 @@ CREATE TABLE "project_dataset" (
 
 -- CreateTable
 CREATE TABLE "case" (
-    case_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    case_id     TEXT PRIMARY KEY,
     case_name   TEXT NOT NULL,
     area_bounds DOUBLE PRECISION[] NOT NULL,
     file_paths  TEXT[] NOT NULL DEFAULT '{}',
